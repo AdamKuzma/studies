@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - Custom Layout
 class CarouselLayout: UICollectionViewLayout {
     private let itemSize = CGSize(width: 280, height: 250)
-    private let spacing: CGFloat = -100
+    var spacing: CGFloat = -100  // Make spacing variable
     private var cache: [UICollectionViewLayoutAttributes] = []
     
     override var collectionViewContentSize: CGSize {
@@ -25,8 +25,6 @@ class CarouselLayout: UICollectionViewLayout {
         guard let collectionView = collectionView else { return }
         cache.removeAll()
         
-        let horizontalOffset = (collectionView.bounds.width - itemSize.width) / 2
-        
         for item in 0..<collectionView.numberOfItems(inSection: 0) {
             let indexPath = IndexPath(item: item, section: 0)
             let attributes = UICollectionViewLayoutAttributes(forCellWith: indexPath)
@@ -37,20 +35,35 @@ class CarouselLayout: UICollectionViewLayout {
             // Calculate distance from center
             let centerX = collectionView.contentOffset.x + collectionView.bounds.width / 2
             let cellCenter = x + itemSize.width / 2
-            let distance = abs(cellCenter - centerX)
+            let distance = cellCenter - centerX  // Removed abs() to keep direction
             
-            // Apply scale transform
-            let scale = max(0.8, 1 - distance / itemSize.width * 0.2)
-            attributes.transform = CGAffineTransform(scaleX: scale, y: scale)
+            // Calculate vertical offset based on distance from center
+            // Maximum vertical offset (how high the cards go)
+            let maxVerticalOffset: CGFloat = -100
             
-            // Apply opacity
-            attributes.alpha = max(0.5, 1 - distance / itemSize.width * 0.5)
+            // Calculate vertical offset using a parabolic function
+            let normalizedDistance = abs(distance) / itemSize.width
+            let verticalOffset = maxVerticalOffset * normalizedDistance * normalizedDistance
             
-            // Apply z-index
-            if distance < itemSize.width / 2 {
+            // Create transform
+            var transform = CGAffineTransform.identity
+            
+            // Scale based on distance
+            let scale = max(0.8, 1 - abs(distance) / itemSize.width * 0.2)
+            transform = transform.scaledBy(x: scale, y: scale)
+            
+            // Translate up based on distance from center
+            transform = transform.translatedBy(x: 0, y: -verticalOffset)
+            
+            // Apply transforms
+            attributes.transform = transform
+            attributes.alpha = max(0.5, 1 - abs(distance) / itemSize.width * 0.5)
+            
+            // Z-index
+            if abs(distance) < itemSize.width / 2 {
                 attributes.zIndex = 100
             } else {
-                attributes.zIndex = -Int(distance)
+                attributes.zIndex = -Int(abs(distance))
             }
             
             cache.append(attributes)
@@ -116,7 +129,116 @@ class CarouselCell: UICollectionViewCell {
 // MARK: - View Controller
 class CarouselViewController: UIViewController {
     private let cellSize = CGSize(width: 280, height: 250)
-    private let spacing: CGFloat = -100
+    private var spacing: CGFloat = -100 {
+        didSet {
+            // Update layout when spacing changes
+            if let layout = collectionView.collectionViewLayout as? CarouselLayout {
+                layout.spacing = spacing
+                layout.invalidateLayout()
+            }
+        }
+    }
+    
+    // Add controls
+    private lazy var settingsButton: UIButton = {
+        let button = UIButton()
+        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+        button.setImage(UIImage(systemName: "gear", withConfiguration: config), for: .normal)
+        button.tintColor = .gray
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(toggleSettings), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var settingsView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBackground
+        view.layer.cornerRadius = 12
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.2
+        view.layer.shadowRadius = 8
+        view.layer.shadowOffset = CGSize(width: 0, height: 2)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.alpha = 0
+        return view
+    }()
+    
+    private lazy var spacingSlider: UISlider = {
+        let slider = UISlider()
+        slider.minimumValue = -150
+        slider.maximumValue = 0
+        slider.value = Float(spacing)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.addTarget(self, action: #selector(spacingChanged(_:)), for: .valueChanged)
+        return slider
+    }()
+    
+    private lazy var spacingLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Spacing"
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+        setupSettings()
+    }
+    
+    private func setupSettings() {
+        view.addSubview(settingsButton)
+        view.addSubview(settingsView)
+        
+        settingsView.addSubview(spacingLabel)
+        settingsView.addSubview(spacingSlider)
+        
+        NSLayoutConstraint.activate([
+            // Settings button
+            settingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            settingsButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40),
+            
+            // Settings view
+            settingsView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            settingsView.bottomAnchor.constraint(equalTo: settingsButton.topAnchor, constant: -20),
+            settingsView.widthAnchor.constraint(equalToConstant: 280),
+            
+            // Controls within settings view
+            spacingLabel.topAnchor.constraint(equalTo: settingsView.topAnchor, constant: 16),
+            spacingLabel.leadingAnchor.constraint(equalTo: settingsView.leadingAnchor, constant: 16),
+            
+            spacingSlider.topAnchor.constraint(equalTo: spacingLabel.bottomAnchor, constant: 8),
+            spacingSlider.leadingAnchor.constraint(equalTo: settingsView.leadingAnchor, constant: 16),
+            spacingSlider.trailingAnchor.constraint(equalTo: settingsView.trailingAnchor, constant: -16),
+            spacingSlider.bottomAnchor.constraint(equalTo: settingsView.bottomAnchor, constant: -16)
+        ])
+    }
+    
+    @objc private func toggleSettings() {
+        let isHidden = !settingsView.isHidden
+        if isHidden {
+            // Hiding the settings
+            UIView.animate(withDuration: 0.3) {
+                self.settingsView.alpha = 0
+                self.settingsButton.transform = .identity
+            } completion: { _ in
+                self.settingsView.isHidden = true
+            }
+        } else {
+            // Showing the settings
+            settingsView.isHidden = false
+            UIView.animate(withDuration: 0.3) {
+                self.settingsView.alpha = 1
+                self.settingsButton.transform = CGAffineTransform(rotationAngle: .pi/4)
+            }
+        }
+    }
+    
+    @objc private func spacingChanged(_ slider: UISlider) {
+        spacing = CGFloat(slider.value)
+    }
     
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: CarouselLayout())
@@ -125,28 +247,27 @@ class CarouselViewController: UIViewController {
         cv.dataSource = self
         cv.decelerationRate = .fast
         cv.showsHorizontalScrollIndicator = false
+        cv.clipsToBounds = false  // Allow cells to overflow bounds
         cv.register(CarouselCell.self, forCellWithReuseIdentifier: CarouselCell.identifier)
         cv.translatesAutoresizingMaskIntoConstraints = false
         return cv
     }()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupUI()
-    }
-    
+
     private func setupUI() {
+        view.clipsToBounds = false
         view.addSubview(collectionView)
+        
         NSLayoutConstraint.activate([
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: cellSize.height)
+            collectionView.heightAnchor.constraint(equalToConstant: cellSize.height + 60)
         ])
         
         let horizontalInset = (view.bounds.width - cellSize.width) / 2
-        collectionView.contentInset = UIEdgeInsets(top: 0, left: horizontalInset, bottom: 0, right: horizontalInset)
+        collectionView.contentInset = UIEdgeInsets(top: 30, left: horizontalInset, bottom: 30, right: horizontalInset)
     }
+    
 }
 
 // MARK: - Collection View Data Source & Delegate
