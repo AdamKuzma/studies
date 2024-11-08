@@ -88,6 +88,15 @@ class CarouselLayout: UICollectionViewLayout {
 class CarouselCell: UICollectionViewCell {
     static let identifier = "CarouselCell"
     
+    private let blurEffectView: UIVisualEffectView = {
+        let blurEffect = UIBlurEffect(style: .systemMaterial) // Use .light, .dark, or .systemMaterial based on preference
+        let view = UIVisualEffectView(effect: blurEffect)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.layer.cornerRadius = 5
+        view.clipsToBounds = true
+        return view
+    }()
+    
     private let label: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
@@ -107,22 +116,30 @@ class CarouselCell: UICollectionViewCell {
     }
     
     private func setup() {
-        contentView.backgroundColor = .gray
+        // Set up the frosted glass effect
+        contentView.addSubview(blurEffectView)
         contentView.layer.cornerRadius = 10
         contentView.layer.shadowRadius = 5
         contentView.layer.shadowOpacity = 0.2
         contentView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        layer.zPosition = 0
         
-        contentView.addSubview(label)
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+            blurEffectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            blurEffectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            blurEffectView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            blurEffectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
+        
+        // Add the label on top of the blur effect
+        blurEffectView.contentView.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: blurEffectView.contentView.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: blurEffectView.contentView.centerYAnchor)
         ])
     }
-    
-    func configure(with zIndex: Int) {
-        label.text = "z: \(zIndex)"
+
+    func configure(with zIndex: Double) {
+        label.text = String(format: "z: %.1f", zIndex)
     }
 }
 
@@ -278,7 +295,12 @@ extension CarouselViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CarouselCell.identifier, for: indexPath) as! CarouselCell
-        cell.configure(with: indexPath.item)
+        
+        // Retrieve layout attributes for this item to get the z-index
+        if let layoutAttributes = collectionView.collectionViewLayout.layoutAttributesForItem(at: indexPath) {
+            cell.configure(with: Double(layoutAttributes.zIndex))
+        }
+        
         return cell
     }
 }

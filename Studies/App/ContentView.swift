@@ -15,6 +15,10 @@ struct ContentView: View {
                 
                 ProjectRow(number: "01", title: "Basic Carousel", destination: AnyView(BasicCarouselPreview()))
                 Divider()
+                ProjectRow(number: "02", title: "Advanced Carousel", destination: AnyView(BasicCarouselPreview()))
+                Divider()
+                ProjectRow(number: "03", title: "UIKit Carousel", destination: AnyView(BasicCarouselPreview()))
+                Divider()
             }
             .navigationTitle("All Projects")
             .padding(.top, 20)
