@@ -12,7 +12,6 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 Divider()
-                
                 ProjectRow(number: "01", title: "Basic Carousel", destination: AnyView(BasicCarouselPreview()))
                 Divider()
                 ProjectRow(number: "02", title: "Advanced Carousel", destination: AnyView(BasicCarouselPreview()))

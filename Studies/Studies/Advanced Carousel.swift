@@ -7,23 +7,27 @@
 
 import SwiftUI
 
+private let cardWidth: CGFloat = 250
+private let cardHeight: CGFloat = 250
+
+
 struct AdvCardCarousel<Content: View>: View {
     let items: [Content]
     
     // Customizable properties
-    private let maxCardWidth: CGFloat = 250
-    private let cardHeight: CGFloat = 350
-    private let spacing: CGFloat = -180
+    private let spacing: CGFloat = -100
+    
     private let minScale: CGFloat = 0.8
     private let maxScale: CGFloat = 1.2  // Maximum scale for left side cards
     
     // Separate rotation values for left and right
     private let leftRotation: Double = 20
-    private let rightRotation: Double = 20
+    private let rightRotation: Double = -10
+    private let perspecitve: Double = 0
     
     // Separate vertical offset values for left and right
-    private let leftVerticalOffset: CGFloat = 20
-    private let rightVerticalOffset: CGFloat = 20
+    private let leftVerticalOffset: CGFloat = -50
+    private let rightVerticalOffset: CGFloat = -20
     
     // Center card position offset
     private let centerOffset: CGPoint = CGPoint(x: 0, y: 0)
@@ -43,58 +47,48 @@ struct AdvCardCarousel<Content: View>: View {
                             .rotationEffect(.degrees(180))
                             .rotation3DEffect(
                                 .degrees(rotation(for: geometry)),
-                                axis: (x: 0, y: 0, z: 1)
+                                axis: (x: 0, y: 0, z: 1),
+                                perspective: perspecitve
                             )
                             .offset(y: verticalOffset(for: geometry))
                             .offset(x: xOffset(for: geometry), y: yOffset(for: geometry))
                             .animation(.easeOut(duration: 0.2), value: geometry.frame(in: .global).minX)
                     }
-                    .frame(width: maxCardWidth)
+                    .frame(width: cardWidth)
                 }
             }
-            .frame(height: cardHeight)
-            .padding(.vertical, (cardHeight * maxScale - cardHeight) / 2 + abs(min(leftVerticalOffset, rightVerticalOffset)))  // Add extra padding for vertical offset
-            .padding(.horizontal, UIScreen.main.bounds.width / 2 - maxCardWidth / 2)
+            .frame(maxHeight: .infinity)
+            .padding(.vertical, 250)  // Vertical Position Default
+            .padding(.horizontal, UIScreen.main.bounds.width / 2 - cardWidth / 2)
             .rotationEffect(.degrees(180))
         }
-        .frame(height: cardHeight * maxScale + abs(min(leftVerticalOffset, rightVerticalOffset)) * 2)  // Account for vertical offset
+        .frame(maxHeight: .infinity)
     }
     
     private func xOffset(for geometry: GeometryProxy) -> CGFloat {
-        let screenCenter = UIScreen.main.bounds.width / 2
-        let offset = geometry.frame(in: .global).minX
-        let cardCenter = offset + maxCardWidth / 2
-        let distanceFromCenter = cardCenter - screenCenter
-        
-        // Gradually blend the center offset as cards move away from center
-        let centerBlend = 1 - min(abs(distanceFromCenter) / maxCardWidth, 1)
-        return centerOffset.x * centerBlend
+        return centerOffset.x  // Simply return the constant offset
     }
-    
+
     private func yOffset(for geometry: GeometryProxy) -> CGFloat {
         let screenCenter = UIScreen.main.bounds.width / 2
         let offset = geometry.frame(in: .global).minX
-        let cardCenter = offset + maxCardWidth / 2
+        let cardCenter = offset + cardWidth / 2
         let distanceFromCenter = cardCenter - screenCenter
-        let percentageFromCenter = distanceFromCenter / maxCardWidth
+        let percentageFromCenter = distanceFromCenter / cardWidth
         
-        // Calculate vertical offset based on side position
-        let sideOffset = cardCenter < screenCenter ?
+        // Calculate vertical offset based on side position without blending
+        return cardCenter < screenCenter ?
             (percentageFromCenter * leftVerticalOffset) :
             (percentageFromCenter * rightVerticalOffset)
-        
-        // Blend with center offset
-        let centerBlend = 1 - min(abs(distanceFromCenter) / maxCardWidth, 1)
-        return sideOffset + (centerOffset.y * centerBlend)
     }
     
     
     private func verticalOffset(for geometry: GeometryProxy) -> CGFloat {
         let screenCenter = UIScreen.main.bounds.width / 2
         let offset = geometry.frame(in: .global).minX
-        let cardCenter = offset + maxCardWidth / 2
+        let cardCenter = offset + cardWidth / 2
         let distanceFromCenter = cardCenter - screenCenter
-        let percentageFromCenter = distanceFromCenter / maxCardWidth
+        let percentageFromCenter = distanceFromCenter / cardWidth
         
         if cardCenter < screenCenter {  // Left side
             return percentageFromCenter * leftVerticalOffset
@@ -106,9 +100,9 @@ struct AdvCardCarousel<Content: View>: View {
     private func rotation(for geometry: GeometryProxy) -> Double {
         let screenCenter = UIScreen.main.bounds.width / 2
         let offset = geometry.frame(in: .global).minX
-        let cardCenter = offset + maxCardWidth / 2
+        let cardCenter = offset + cardWidth / 2
         let distanceFromCenter = cardCenter - screenCenter
-        let percentageFromCenter = distanceFromCenter / maxCardWidth
+        let percentageFromCenter = distanceFromCenter / cardWidth
         
         if cardCenter < screenCenter {  // Left side
             return percentageFromCenter * leftRotation
@@ -120,9 +114,9 @@ struct AdvCardCarousel<Content: View>: View {
     private func scale(for geometry: GeometryProxy) -> CGFloat {
         let screenCenter = UIScreen.main.bounds.width / 2
         let offset = geometry.frame(in: .global).minX
-        let cardCenter = offset + maxCardWidth / 2
+        let cardCenter = offset + cardWidth / 2
         let distanceFromCenter = abs(cardCenter - screenCenter)
-        let maxDistance = maxCardWidth
+        let maxDistance = cardWidth
         
         if cardCenter < screenCenter {  // Left side
             if distanceFromCenter > maxDistance {
@@ -155,7 +149,7 @@ struct AdvCardView: View {
                     .padding()
             }
         }
-        .frame(width: 250, height: 350)
+        .frame(width: cardWidth, height: cardHeight)
         .cornerRadius(5)
         .shadow(radius: 5)
     }
@@ -166,6 +160,12 @@ struct AdvCarouselPreview: View {
         AdvCardCarousel([
             AdvCardView(title: "Card 1"),
             AdvCardView(title: "Card 2"),
+            AdvCardView(title: "Card 3"),
+            AdvCardView(title: "Card 4"),
+            AdvCardView(title: "Card 5"),
+            AdvCardView(title: "Card 2"),
+            AdvCardView(title: "Card 3"),
+            AdvCardView(title: "Card 4"),
             AdvCardView(title: "Card 3"),
             AdvCardView(title: "Card 4"),
             AdvCardView(title: "Card 5"),
