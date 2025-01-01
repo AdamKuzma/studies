@@ -18,6 +18,7 @@ struct ContentView: View {
                 Divider()
                 ProjectRow(number: "03", title: "UIKit Carousel", destination: AnyView(BasicCarouselPreview()))
                 Divider()
+                ProjectRow(number: "04", title: "Particle Text", destination: AnyView(ParticleView()))
             }
             .navigationTitle("All Projects")
             .padding(.top, 20)

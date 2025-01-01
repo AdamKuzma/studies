@@ -43,7 +43,7 @@ struct TransitionDemoAView: View {
             LazyHStack(spacing: 0) {
                 ForEach(cards) { card in
                     TransitionCardAView(card: card)
-                        .scrollTransition { content, phase in
+                        .scrollTransition() { content, phase in
                             content
                                 
                                 // Scale Effects
@@ -54,24 +54,24 @@ struct TransitionDemoAView: View {
                                 // Rotation Effects
                                 .rotationEffect(.degrees(phase == .identity ? 0 : 0))
                                 .rotation3DEffect(
-                                    .degrees(phase == .identity ? 0 : 20),
+                                    .degrees(rotate(phase: phase)),
                                     axis: (x: 0, y: 1, z: 0)  // 3D rotation around X axis
                                 )
                             
                                 // Position Effects
-                                .offset(x: phase == .identity ? 0 : 0)  // Horizontal offset
+                                .offset(x: phase == .identity ? 0 : 00)  // Horizontal offset
                                 .offset(y: phase == .identity ? 0 : 50)  // Vertical offset
                             
                                 // Transparency
                                 .opacity(phase == .identity ? 1.0 : 0.5)
                                 
                                 // Color Effects
-                                .saturation(phase == .identity ? 1.0 : 0.5)
-                                .brightness(phase == .identity ? 0 : -0.2)
-                                .contrast(phase == .identity ? 1.0 : 0.8)
-                                
-                                // Blur Effect
-                                .blur(radius: phase == .identity ? 0 : 5)
+//                                .saturation(phase == .identity ? 1.0 : 0.5)
+//                                .brightness(phase == .identity ? 0 : -0.2)
+//                                .contrast(phase == .identity ? 1.0 : 0.8)
+//                                
+//                                // Blur Effect
+//                                .blur(radius: phase == .identity ? 0 : 5)
                             
                             
                         }
@@ -90,6 +90,19 @@ struct TransitionDemoAView: View {
         }
         .scrollTargetBehavior(.viewAligned)
     }
+    
+    //Different rotation on the left and right
+    func rotate(phase: ScrollTransitionPhase) -> CGFloat {
+        switch phase {
+        case .topLeading:
+            -20
+        case .identity:
+            0
+        case .bottomTrailing:
+            20
+        }
+    }
+    
 }
 
 #Preview {
